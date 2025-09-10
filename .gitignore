@@ -1,0 +1,12 @@
+# 仮想環境
+venv/
+
+# Pythonキャッシュ
+__pycache__/
+*.pyc
+
+# データベースファイル
+database.db
+
+# macOSシステムファイル
+.DS_Store
