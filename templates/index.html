@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>KAKUGEN</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="header-logo"><span>KAKUGEN</span></div>
+        <h1>あなただけの「格言」を入力</h1>
+        <form action="{{ url_for('create') }}" method="post" class="create-form">
+            <input name="content" id="content" required placeholder="あなたにしか届けられない、等身大の言葉がある。">
+        </form>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar-left">
+            <p>言葉はもっと自由でいい</p>
+            <p>「あの人」が言った、良い言葉<br>当然、そういう言葉もある</p>
+            <p>でも、誰でもない「あなた」<br>の言葉だから、遠くの誰かに<br>届くのかもしれない</p>
+            <p class="strong">ここは<br>アカウントが<br>存在しない<br>言葉だけのSNS</p>
+        </aside>
+
+        <div class="main-content">
+            <nav class="sort-tabs">
+                <a href="{{ url_for('index', sort='newest') }}" class="{{ 'active' if sort_by == 'newest' }}">新着順</a>
+                <a href="{{ url_for('index', sort='likes') }}" class="{{ 'active' if sort_by == 'likes' }}">人気順</a>
+                <a href="{{ url_for('index', sort='reports') }}" class="{{ 'active' if sort_by == 'reports' }}">通報順</a>
+            </nav>
+
+            <main>
+                {% for kakugen in posts %}
+                <article class="kakugen-item">
+                    <p class="content">{{ kakugen.content }}</p>
+                    <div class="actions">
+                        <span class="action-button report-button" data-post-id="{{ kakugen.id }}">
+                            <span class="icon"><i class="fa-solid fa-bullhorn"></i></span>
+                            <span class="count report-count">{{ kakugen.reports }}</span>
+                        </span>
+                        <span class="action-button like-button" data-post-id="{{ kakugen.id }}">
+                            <span class="icon"><i class="fa-regular fa-heart"></i></span>
+                            <span class="count like-count">{{ kakugen.likes }}</span>
+                        </span>
+                    </div>
+                </article>
+                {% endfor %}
+            </main>
+        </div>
+
+        <aside class="sidebar-right">
+            <h2>〜投稿ルール〜</h2>
+            <p class="rule-important">誹謗中傷はおやめください</p>
+            <p>不適切な投稿があった場合は<br><i class="fa-solid fa-bullhorn"></i><br>こちらのアイコンを<br>押してください。<br>管理人が削除しに参ります。</p>
+            <p>「誰の」言葉か<br>明記することを禁止します</p>
+            <p>著作権等で守られている言葉は<br>なんかあったときちょっと怖いので<br>控えてください</p>
+            <p>みんな仲良くしてください</p>
+            <p>暖かい言葉で<br>誰かを後押ししてあげてください</p>
+            <p>お問い合わせ↓<br>www@gmail.com</p>
+        </aside>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+            likedPosts.forEach(postId => {
+                const button = document.querySelector(`.like-button[data-post-id='${postId}']`);
+                if (button) button.classList.add('liked');
+            });
+            const reportedPosts = JSON.parse(localStorage.getItem('reportedPosts') || '[]');
+            reportedPosts.forEach(postId => {
+                const button = document.querySelector(`.report-button[data-post-id='${postId}']`);
+                if (button) button.classList.add('reported');
+            });
+        });
+
+        document.querySelectorAll('.like-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const postId = button.dataset.postId;
+                const countSpan = button.querySelector('.like-count');
+                const isLiked = button.classList.contains('liked');
+                const url = isLiked ? `/unlike/${postId}` : `/like/${postId}`;
+
+                fetch(url, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.likes !== undefined) {
+                            countSpan.textContent = data.likes;
+                            button.classList.toggle('liked');
+                            let likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+                            if (isLiked) {
+                                likedPosts = likedPosts.filter(id => id !== postId);
+                            } else {
+                                likedPosts.push(postId);
+                            }
+                            localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+                        }
+                    });
+            });
+        });
+
+        document.querySelectorAll('.report-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const postId = button.dataset.postId;
+                const countSpan = button.querySelector('.report-count');
+                const isReported = button.classList.contains('reported');
+                const url = isReported ? `/unreport/${postId}` : `/report/${postId}`;
+
+                fetch(url, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.reports !== undefined) {
+                            countSpan.textContent = data.reports;
+                            button.classList.toggle('reported');
+                            let reportedPosts = JSON.parse(localStorage.getItem('reportedPosts') || '[]');
+                            if (isReported) {
+                                reportedPosts = reportedPosts.filter(id => id !== postId);
+                            } else {
+                                reportedPosts.push(postId);
+                            }
+                            localStorage.setItem('reportedPosts', JSON.stringify(reportedPosts));
+                        }
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
